@@ -5,62 +5,101 @@
     <title>文件上传</title>
     <script src="/js/jquery-3.2.1.min.js"></script>
     <style>
-        body{
+        body {
             margin: 0;
             padding: 0;
-        }
-        input{
             font-size: 16px;
+        }
+
+        input {
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 10px;
+            color: white;
+            border-radius: 2px;
+            padding: 8px 16px 8px 16px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-<div>
+<div style="margin: 60px;font-size: 15px">
     <p>文件上传测试</p>
     <input id="file" type="file">
-    <progress style="display: block" id="progress" max="100" value="0"></progress>
-    <button style="display: block" onclick="getFileInfo()">上传</button>
+    <div style="display: block;margin-top: 10px">
+        <span>上传进度：</span>
+        <progress id="progress" max="100" value="0"></progress>
+        <span id="progressLabel"></span>
+    </div>
+    <div>
+        <button style="border: #66A8CC;background-color: #66A8CC" onclick="getFileInfo()">上传</button>
+        <button style="border: red;background-color: red;margin-left: 20px" onclick="stopUpload()">停止</button>
+    </div>
+    <div style="margin-top: 10px"><span style="color: red" id="info"></span></div>
 </div>
 <script>
     // 文件切块大小为10MB
-    const chunkSize = 1024 * 1024*10;
+    const chunkSize = 1024 * 1024 * 10;
+
     // 从start字节处开始上传
-    function upload(start) {
-        let fileObj = document.getElementById('file').files[0];
-        // 上传完成
-        if (start >= fileObj.size) {
+    function upload(file, start) {
+        if (stop) {
+            stop = false;
+            $('#info').text("已停止！");
             return;
         }
+        // 上传完成
+        if (start >= file.size) {
+            $('#info').text("文件已上传完成！");
+            return;
+        }
+        $('#info').text("");
         // 获取文件块的终止字节
-        let end = (start + chunkSize > fileObj.size) ? fileObj.size : (start + chunkSize);
+        let end = (start + chunkSize > file.size) ? file.size : (start + chunkSize);
         // 将文件切块上传
         let fd = new FormData();
-        fd.append('file', fileObj.slice(start, end));
-        fd.append('fileName', fileObj.name);
+        fd.append('file', file.slice(start, end));
+        fd.append('fileName', file.name);
         // POST表单数据
         let xhr = new XMLHttpRequest();
         xhr.open('post', '/uploadFile', true);
-        xhr.onload = function() {
+        xhr.onload = function () {
             if (this.readyState == 4 && this.status == 200) {
                 // 上传一块完成后修改进度条信息，然后上传下一块
                 let progress = document.getElementById('progress');
-                progress.max = fileObj.size;
+                progress.max = file.size;
                 progress.value = end;
-                upload(end);
+                $('#progressLabel').text(Math.round(end / file.size * 100) + "%");
+                upload(file, end);
             }
         };
         xhr.send(fd);
     }
 
+    let stop = false;
+
+    function stopUpload() {
+        stop = true;
+    }
+
     function getFileInfo() {
-        let file = document.getElementById('file').files[0];
+        let files = document.getElementById('file').files;
+        console.log(files)
+        if (!files || files.length === 0) {
+            $('#info').text("请选择文件！");
+            return;
+        }
+        $('#info').text("");
+        let file = files[0];
         $.ajax({
-            url:"/getFileInfo",
-            type:"post",
-            data:{fileName: file.name},
+            url: "/getFileInfo",
+            type: "post",
+            data: {fileName: file.name},
             success: function (data) {
                 console.log(data);
-                upload(data.length);
+                upload(file, data.length);
             }
         })
     }
