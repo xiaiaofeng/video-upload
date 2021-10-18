@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>文件上传</title>
+    <script src="/js/jquery-3.2.1.min.js"></script>
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+        }
+        input{
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <p>文件上传测试</p>
+    <input id="file" type="file">
+    <progress style="display: block" id="progress" max="100" value="0"></progress>
+    <button style="display: block" onclick="getFileInfo()">上传</button>
+</div>
+<script>
+    // 文件切块大小为10MB
+    const chunkSize = 1024 * 1024*10;
+    // 从start字节处开始上传
+    function upload(start) {
+        let fileObj = document.getElementById('file').files[0];
+        // 上传完成
+        if (start >= fileObj.size) {
+            return;
+        }
+        // 获取文件块的终止字节
+        let end = (start + chunkSize > fileObj.size) ? fileObj.size : (start + chunkSize);
+        // 将文件切块上传
+        let fd = new FormData();
+        fd.append('file', fileObj.slice(start, end));
+        fd.append('fileName', fileObj.name);
+        // POST表单数据
+        let xhr = new XMLHttpRequest();
+        xhr.open('post', '/uploadFile', true);
+        xhr.onload = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                // 上传一块完成后修改进度条信息，然后上传下一块
+                let progress = document.getElementById('progress');
+                progress.max = fileObj.size;
+                progress.value = end;
+                upload(end);
+            }
+        };
+        xhr.send(fd);
+    }
+
+    function getFileInfo() {
+        let file = document.getElementById('file').files[0];
+        $.ajax({
+            url:"/getFileInfo",
+            type:"post",
+            data:{fileName: file.name},
+            success: function (data) {
+                console.log(data);
+                upload(data.length);
+            }
+        })
+    }
+</script>
+</body>
+</html>
