@@ -4,13 +4,10 @@ import com.idodok.video.bo.FileInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -153,7 +150,7 @@ public class IndexController {
             randomAccessFile = new RandomAccessFile(file, "r");
             randomAccessFile.seek(startByte);
             outputStream = response.getOutputStream();
-            byte[] buff = new byte[2048];
+            byte[] buff = new byte[1024*4];
             int len;
             while (transmittedLength < contentLength && (len = randomAccessFile.read(buff)) != -1) {
                 outputStream.write(buff, 0, len);
