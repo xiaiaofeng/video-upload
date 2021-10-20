@@ -65,7 +65,7 @@ public class IndexController {
             inputStream = inFile.getInputStream();
             //在原文件上增加，不覆盖原文件
             outputStream = new FileOutputStream(outFile, true);
-            byte[] buffer = new byte[1024 * 1024];
+            byte[] buffer = new byte[1024 * 10];
             int length;
             while ((length = inputStream.read(buffer)) > 0) {
                 outputStream.write(buffer, 0, length);
@@ -150,7 +150,7 @@ public class IndexController {
             randomAccessFile = new RandomAccessFile(file, "r");
             randomAccessFile.seek(startByte);
             outputStream = response.getOutputStream();
-            byte[] buff = new byte[1024*4];
+            byte[] buff = new byte[1024*10];
             int len;
             while (transmittedLength < contentLength && (len = randomAccessFile.read(buff)) != -1) {
                 outputStream.write(buff, 0, len);
