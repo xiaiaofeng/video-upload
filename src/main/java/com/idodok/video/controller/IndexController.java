@@ -137,15 +137,14 @@ public class IndexController {
         response.setContentType(contentType);
         response.setHeader(HttpHeaders.CONTENT_TYPE, contentType);
         response.setHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(contentLength));
-        response.setHeader("Accept-Ranges", "bytes");
+        response.setHeader(HttpHeaders.ACCEPT_RANGES, "bytes");
         //Content-Range: 下载开始位置-下载结束位置/文件大小
-        response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + file.length());
+        response.setHeader(HttpHeaders.CONTENT_RANGE, "bytes " + startByte + "-" + endByte + "/" + file.length());
         //Content-disposition: inline; filename=xxx.xxx 表示浏览器内嵌显示该文件
         //Content-disposition: attachment; filename=xxx.xxx 表示浏览器下载该文件
-        response.setHeader("Content-Disposition", "inline; filename=" + fileName);
-
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + fileName);
         //传输文件流
-        BufferedOutputStream outputStream = null;
+        OutputStream outputStream = null;
         RandomAccessFile randomAccessFile = null;
         //已传送数据大小
         long transmittedLength = 0;
@@ -153,28 +152,31 @@ public class IndexController {
             //以只读模式设置文件指针偏移量
             randomAccessFile = new RandomAccessFile(file, "r");
             randomAccessFile.seek(startByte);
-
-            outputStream = new BufferedOutputStream(response.getOutputStream());
-            byte[] buff = new byte[4096];
+            outputStream = response.getOutputStream();
+            byte[] buff = new byte[2048];
             int len;
             while (transmittedLength < contentLength && (len = randomAccessFile.read(buff)) != -1) {
                 outputStream.write(buff, 0, len);
                 transmittedLength += len;
             }
-
-            outputStream.flush();
             response.flushBuffer();
             logger.info("下载完毕: {}-{}: {}", startByte, endByte, transmittedLength);
         } catch (IOException e) {
             logger.info("下载停止: {}-{}: {}", startByte, endByte, transmittedLength);
-            logger.error(e.getMessage());
         } finally {
             try {
                 if (randomAccessFile != null) {
                     randomAccessFile.close();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("文件输入流被中断");
+            }
+            try{
+                if(outputStream != null){
+                    outputStream.close();
+                }
+            }catch (IOException e){
+                logger.error("响应输出流被中断");
             }
         }
     }
