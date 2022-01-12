@@ -1,6 +1,9 @@
 package com.idodok.video.controller;
 
 import com.idodok.video.bo.FileInfo;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,9 +11,14 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Controller
 public class IndexController {
@@ -31,6 +39,42 @@ public class IndexController {
     }
 
     @ResponseBody
+    @RequestMapping("/uploadFinish")
+    public Object uploadFinish(String fileName){
+        if (fileName == null || fileName.equals("")) {
+            return null;
+        }
+        try {
+            File dir = new File(uploadPath);
+            File file = new File(dir.getAbsolutePath() + File.separator + fileName);
+            FFmpegFrameGrabber ff = FFmpegFrameGrabber.createDefault(file);
+            int ffLength = ff.getLengthInFrames();
+            Frame f;
+            int i = 0;
+            double position = ff.getFrameRate() / 2;//取视频中间的缩略图
+            while (i < ffLength) {
+                f = ff.grabImage();
+                //截取第6帧
+                if ((i > position) && (f.image != null)) {
+                    //生成图片的相对路径 例如：pic/uuid.png
+                    String pngPath = file.getAbsolutePath().substring(0, fileName.lastIndexOf(".")) + ".png";
+                    //执行截图并放入指定位置
+                    Java2DFrameConverter converter = new Java2DFrameConverter();
+                    BufferedImage bi = converter.getBufferedImage(f);
+                    File output = new File(pngPath);
+                    ImageIO.write(bi, "png", output);
+                    break;
+                }
+                i++;
+            }
+            ff.stop();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return "success";
+    }
+
+    @ResponseBody
     @RequestMapping("/getFileInfo")
     public Object getFileInfo(String fileName) {
         if (fileName == null || fileName.equals("")) {
@@ -43,6 +87,19 @@ public class IndexController {
         File file = new File(dir.getAbsolutePath() + File.separator + fileName);
         FileInfo fileInfo = new FileInfo(file);
         return fileInfo;
+    }
+
+    @ResponseBody
+    @RequestMapping("/getFileList")
+    public Object getFileList(){
+        List<FileInfo> fileInfos = new ArrayList<>();
+        File dir = new File(uploadPath);
+        File[] files = dir.listFiles();
+        for (File f : files){
+            FileInfo fileInfo = new FileInfo(f);
+            fileInfos.add(fileInfo);
+        }
+        return fileInfos;
     }
 
     @ResponseBody
